@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Panel de lotes Copart / IAA — v12-impl-04 (rectificado)</title>
+<style>
+:root{
+--bg:#0f172a; --card:#111827; --muted:#334155; --txt:#e5e7eb; --soft:#94a3b8;
+--ok:#16a34a; --warn:#f59e0b; --bad:#ef4444; --btn:#1f2937; --accent:#2563eb;
+--aqua:#06b6d4; --pink:#ec4899; --vio:#7c3aed;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;overflow-y:auto}
+header{padding:14px 16px;border-bottom:1px solid #1f2937;background:#0b1223}
+header h1{margin:0;font-size:18px;font-weight:600;color:#fff}
+header small{color:var(--soft)}
+.grid{display:grid;gap:10px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+button,.btn{background:var(--btn);border:1px solid #263042;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+button:hover{background:#243041}
+.btn-accent{background:var(--accent);border-color:#1e4fd1;color:#fff}
+.btn-danger{background:#b91c1c;border-color:#7f1d1d;color:#fff}
+.btn-ghost{background:transparent;border-color:#263042;color:#fff}
+input,select,textarea{background:#0b1223;border:1px solid #243041;color:#fff;padding:8px;border-radius:8px;width:100%}
+label{font-size:12px;color:#cbd5e1}
+.card{background:var(--card);border:1px solid #1f2937;border-radius:12px;padding:12px;color:#fff}
+.filters{grid-template-columns:repeat(6,minmax(160px,1fr))}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.chip{padding:6px 10px;border-radius:999px;border:1px solid #2b364a;background:#0b1223;font-size:12px;color:#fff}
+.chip.ok{border-color:#1f5630;color:#bbf7d0}
+.chip.warn{border-color:#875a12;color:#fde68a}
+.chip.bad{border-color:#7f1d1d;color:#fecaca}
+.chip.info{border-color:#1e4fd1;color:#c7d2fe}
+/* Tabla */
+.tbl-wrap{border:1px solid #1f2937;border-radius:12px;overflow:visible}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:1740px}
+th,td{padding:10px;border-bottom:1px solid #1f2937;text-align:left;font-size:14px;vertical-align:middle;color:#fff}
+th{background:#0b1223;cursor:pointer;white-space:nowrap;position:static}
+tbody tr:hover{background:#0b132a}
+.wrap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.badge{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #263042;background:#0b1223;color:#fff}
+.badge.Copart{border-color:#2563eb;color:#bfdbfe}
+.badge.IAA{border-color:#7c3aed;color:#e9d5ff}
+.status{font-weight:600}
+.status.revision{color:#93c5fd}
+.status.listo{color:#86efac}
+.status.puja{color:#fde68a}
+.status.descartado{color:#fecaca}
+.status.comprado{color:#a7f3d0}
+.row-actions{display:flex;gap:6px}
+.link{color:#93c5fd;text-decoration:none}
+.right{display:flex;gap:8px;margin-left:auto}
+.hidden{display:none}
+.footer{padding:12px;color:#94a3b8;font-size:12px}
+.kbd{border:1px solid #2b364a;border-bottom-width:2px;padding:2px 6px;border-radius:6px;font-size:12px;color:#bfdbfe}
+.pill{padding:2px 8px;border-radius:999px;border:1px solid #2b364a;font-size:12px;color:#fff}
+.pill.ok{border-color:#1f5630;color:#86efac}
+.pill.warn{border-color:#875a12;color:#fde68a}
+.pill.bad{border-color:#7f1d1d;color:#fecaca}
+.pill.info{border-color:#1e4fd1;color:#c7d2fe}
+.pill.alt{border-color:#06b6d4;color:#a5f3fc}
+.icon{font-size:16px;line-height:1}
+/* Paneles */
+.panel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.panel .full{grid-column:1/-1}
+/* Dashboard */
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bar{background:#0b1223;border:1px solid #1f2937;border-radius:8px;padding:10px;color:#fff}
+.bar .row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bar .meter{flex:1;height:8px;background:#111827;border-radius:6px;overflow:hidden}
+.bar .meter span{display:block;height:8px;background:var(--accent)}
+.pie{display:flex;gap:6px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%}
+.tag{display:flex;align-items:center;gap:6px;background:#0b1223;border:1px solid #1f2937;border-radius:999px;padding:4px 8px;font-size:12px;color:#fff}
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:20}
+.modal{width:min(1160px,96vw);max-height:92vh;overflow:auto;background:#0b1223;border:1px solid #1f2937;border-radius:12px;color:#fff}
+.modal header{position:sticky;top:0;border-bottom:1px solid #1f2937;background:#0b1223;z-index:21}
+.modal .body{padding:12px}
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.form-full{grid-column:1/-1}
+.check-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.inline{display:flex;align-items:center;gap:8px}
+.muted{color:#cbd5e1}
+.danger{color:#fecaca}
+.success{color:#bbf7d0}
+.section-title{margin:8px 0 4px 0;color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+hr.sep{border:none;border-top:1px solid #1f2937;margin:8px 0}
+/* Galería */
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gallery img{width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid #1f2937;background:#0b1223}
+/* Visor web inferior */
+.switcher{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px;background:#0b1223;border-top:1px solid #1f2937;z-index:15}
+.switcher button{flex:1;max-width:220px;font-size:16px;padding:10px 14px;border-radius:10px;background:#1f2937;color:#e5e7eb;border:1px solid #263042;cursor:pointer}
+.switcher button.active{background:#2563eb;border-color:#1e4fd1;color:#fff}
+.switcher .hint{font-size:12px;color:#94a3b8;margin-left:8px}
+.webpane{position:fixed;left:0;right:0;bottom:56px;height:42vh;background:#0b1223;border-top:1px solid #1f2937;z-index:16;display:none;flex-direction:column}
+.webpane header{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #1f2937;background:#0b1223}
+.webpane .title{font-size:13px;color:#cbd5e1}
+.webpane iframe{flex:1;width:100%;border:0;background:#0b1223}
+/* Toast */
+.toast{position:fixed;right:14px;bottom:70px;background:#0b1223;border:1px solid #1f2937;color:#e5e7eb;padding:10px 12px;border-radius:10px;box-shadow:0 10px 30px #0006;opacity:0;transform:translateY(10px);transition:.25s;z-index:30}
+.toast.show{opacity:1;transform:translateY(0)}
+/* VPN + Red */
+.vpn-banner{margin:10px 0;padding:8px 10px;border-radius:10px;border:1px dashed #1e4fd1;background:#0b1223;color:#c7d2fe;font-size:12px}
+.net-banner{margin:10px 0;padding:8px 10px;border-radius:10px;font-size:12px}
+.net-banner.online{border:1px solid #1f5630;color:#86efac;background:#0b1223}
+.net-banner.offline{border:1px solid #7f1d1d;color:#fecaca;background:#0b1223}
+/* Extras */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.badge.lock{border-color:#7f1d1d;color:#fecaca}
+.badge.approved{border-color:#1f5630;color:#bbf7d0}
+.badge.opt{border-color:#06b6d4;color:#a5f3fc}
+.badge.cash{border-color:#a855f7;color:#e9d5ff}
+.note{font-size:12px;color:#cbd5e1}
+.kpi{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.kpi .pill{background:#0b1223}
+.small{font-size:12px}
+/* CRÍTICOS Y SEMÁFORO GLOBAL */
+.critbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.critbar .pill{background:#0b1223}
+.critlist{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.crititem{display:flex;gap:8px;align-items:center;border:1px dashed #263042;padding:8px;border-radius:10px}
+/* MODOS */
+.badge.mode{border-color:#06b6d4;color:#a5f3fc}
+/* Subasta modal */
+#auctionBk .body{display:grid;gap:10px}
+.auRow{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid #1f2937;border-radius:10px;padding:8px}
+/* Responsive */
+@media (max-width:1100px){
+.filters{grid-template-columns:repeat(3,minmax(160px,1fr))}
+.form-grid{grid-template-columns:repeat(2,1fr)}
+.dash{grid-template-columns:1fr}
+.gallery{grid-template-columns:repeat(2,1fr)}
+.two{grid-template-columns:1fr}
+.critlist{grid-template-columns:1fr}
+}
+/* Print */
+@media print{
+header,.toolbar,.filters,.footer,.modal-backdrop,#dashCard,.switcher,.vpn-banner,.toast,.webpane,.net-banner,#cfgBtn,#btnExportPDF,#optBk,#auctionBk{display:none!important}
+body{background:#fff;color:#000}
+.tbl-wrap{border:none}
+th{position:static;background:#fff;color:#000}
+td{color:#000}
+}
+</style>
+</head>
+<body>
+<header>
+<div style="display:flex;align-items:center;gap:12px">
+<h1>Panel Copart / IAA — Lotes, filtros y auditoría</h1>
+<small>Local + backup nube, CSV/JSON/PDF firmados, checklist, ROI, semáforos, agenda, IA, simulación, caja, subasta y manos libres</small>
+<div class="right">
+<span class="kbd">N</span><small class="muted">nuevo</small>
+<span class="kbd">F</span><small class="muted">buscar</small>
+<span class="kbd">S</span><small class="muted">guardar JSON</small>
+</div>
+</div>
+
+<div class="toolbar">
+<button class="btn-accent" id="btnNew">+ Nuevo lote</button>
+<button id="btnExportCSV">Exportar CSV</button>
+<button id="btnExportJSON">Exportar JSON</button>
+<button id="btnExportPDF">Exportar PDF</button>
+<button id="btnExportLOG">Exportar logs</button>
+<button class="btn-ghost" id="btnOptimize">Optimizar cartera</button>
+<button class="btn-ghost" id="btnPriorPanel">Ver prioridades</button>
+<button class="btn-ghost" id="btnAlertsPanel">Panel alertas</button>
+<button class="btn-ghost" id="btnAuctionMode">Modo subasta</button>
+<button class="btn-ghost" id="btnHandsFree">Manos libres</button>
+<label class="btn-ghost" for="impCsv">Importar CSV</label>
+<input id="impCsv" type="file" accept=".csv,text/csv" class="hidden" />
+<label class="btn-ghost" for="impJson">Importar JSON</label>
+<input id="impJson" type="file" accept=".json,application/json" class="hidden" />
+<button class="btn-ghost" id="cfgBtn">Configuración</button>
+<button class="btn-danger" id="btnClear">Borrar todo</button>
+
+<div class="right stats">
+<span class="chip">Total: <b id="statTotal">0</b></span>
+<span class="chip warn">En revisión: <b id="statRevision">0</b></span>
+<span class="chip warn">Puja activa: <b id="statPuja">0</b></span>
+<span class="chip ok">Listo: <b id="statListo">0</b></span>
+<span class="chip bad">Descartado: <b id="statDesc">0</b></span>
+<span class="chip ok">Checklist OK: <b id="statChkOk">0</b></span>
+<span class="chip info">ROI ≥ 20%: <b id="statRoi">0</b></span>
+<span class="chip info"><span id="roleBadge" class="badge mode">ROL —</span></span>
+</div>
+</div>
+</header>
+
+<!-- Panel de alertas críticas + semáforo global -->
+<div class="card" id="critCard">
+  <div class="section-title">Alertas críticas y semáforo global</div>
+  <div class="critbar" id="globSem"></div>
+  <div class="critbar" id="critKpi"></div>
+  <div class="critlist" id="critList"></div>
+</div>
+
+<div class="grid card filters" id="filters">
+  <div>
+    <label>Plataforma</label>
+    <select id="fPlataforma">
+      <option value="">Todas</option>
+      <option>Copart</option>
+      <option>IAA</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Texto (VIN, lote, marca, modelo, notas)</label>
+    <input id="fText" placeholder="Buscar…" list="sugText"/>
+    <datalist id="sugText"></datalist>
+  </div>
+
+  <div>
+    <label>Tipo de daño</label>
+    <select id="fDanio">
+      <option value="">Todos</option>
+      <option>Frontal</option><option>Trasero</option><option>Lateral</option>
+      <option>Inundación</option><option>Mecánico</option><option>Hail</option><option>Vandalismo</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Título</label>
+    <select id="fTitulo">
+      <option value="">Todos</option>
+      <option>Limpio</option><option>Salvage</option><option>Rebuildable</option><option>Parts Only</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Estado de arranque</label>
+    <select id="fArranque">
+      <option value="">Todos</option>
+      <option>Runs and Drives</option><option>Starts</option><option>Enhanced</option><option>No Arranca</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Estado</label>
+    <select id="fEstado">
+      <option value="">Todos</option>
+      <option>En revisión</option><option>Puja activa</option><option>Listo</option><option>Descartado</option><option>Comprado</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Año min</label>
+    <input id="fYearMin" type="number" min="1900" max="2050" />
+  </div>
+
+  <div>
+    <label>Año max</label>
+    <input id="fYearMax" type="number" min="1900" max="2050" />
+  </div>
+
+  <div>
+    <label>Km máx</label>
+    <input id="fKmMax" type="number" min="0" />
+  </div>
+
+  <div>
+    <label>Ubicación contiene</label>
+    <input id="fUbic" placeholder="Ciudad / patio" />
+  </div>
+
+  <div>
+    <label>Subasta desde</label>
+    <input id="fFechaMin" type="date" />
+  </div>
+
+  <div>
+    <label>Subasta hasta</label>
+    <input id="fFechaMax" type="date" />
+  </div>
+</div>
+
+<div class="vpn-banner">Recuerda: activa tu VPN antes de abrir Copart o IAA para que carguen correctamente.</div>
+<div id="netBanner" class="net-banner offline hidden">Sin conexión. Seguimos operando offline. Al volver la conexión, abriremos las páginas pendientes automáticamente.</div>
+
+<div class="tbl-wrap" id="tableWrap">
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th data-key="plataforma">Plataforma</th>
+        <th data-key="lote">Lote</th>
+        <th data-key="vin">VIN</th>
+        <th data-key="marca">Marca</th>
+        <th data-key="modelo">Modelo</th>
+        <th data-key="anio">Año</th>
+        <th data-key="km">Km</th>
+        <th data-key="danioTipo">Daño</th>
+        <th data-key="arranque">Arranque</th>
+        <th data-key="titulo">Título</th>
+        <th data-key="ubicacion">Ubicación</th>
+        <th data-key="fechaSubasta">Fecha subasta</th>
+        <th data-key="precio">Precio</th>
+        <th data-key="bin">BIN</th>
+        <th data-key="estado">Estado</th>
+        <th data-key="checkOk">Checklist</th>
+        <th data-key="topeCompraCalc">Tope</th>
+        <th data-key="predictedPrice">Precio esperado</th>
+        <th>IA</th>
+        <th>Puja sugerida</th>
+        <th>Flags</th>
+        <th>Enlace</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="card" id="dashCard">
+  <div class="section-title">Dashboard</div>
+  <div class="dash">
+    <div class="bar">
+      <div class="section-title">Estados</div>
+      <div id="barEstados"></div>
+    </div>
+    <div class="bar">
+      <div class="section-title">Daños</div>
+      <div id="barDanios"></div>
+    </div>
+    <div class="bar">
+      <div class="section-title">ROI</div>
+      <div class="pie" id="pieRoi"></div>
+      <div style="margin-top:8px" id="roiTop"></div>
+    </div>
+    <div class="bar">
+      <div class="section-title">Prioridades</div>
+      <div id="prioList"></div>
+      <div class="kpi" id="cashKpi"></div>
+      <div class="kpi" id="aiAccKpi"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Consejo: captura siempre VIN, lote, título, daño, arranque y fotos; lo demás se puede estimar, eso no.</div>
+
+<!-- Modal de alta/edición -->
+<div class="modal-backdrop" id="modalBk">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modTitle">
+    <header>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <h2 id="modTitle">Lote</h2>
+        <div class="inline">
+          <small class="muted">Creado: <span id="mCreado">—</span></small>
+          <small class="muted">Actualizado: <span id="mActualizado">—</span></small>
+          <button class="btn-ghost" id="btnClose">Cerrar</button>
+          <button class="btn-accent" id="btnSave">Guardar</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="body">
+      <form id="frm" class="grid form-grid">
+        <div>
+          <label>Plataforma</label>
+          <select name="plataforma" required>
+            <option>Copart</option><option>IAA</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Nº de lote</label>
+          <input name="lote" placeholder="Ej. 12345678" />
+        </div>
+
+        <div>
+          <label>VIN (17)</label>
+          <input name="vin" maxlength="17" placeholder="17 caracteres" />
+        </div>
+
+        <div>
+          <label>Estado</label>
+          <select name="estado">
+            <option>En revisión</option><option>Puja activa</option><option>Listo</option><option>Descartado</option><option>Comprado</option>
+          </select>
+        </div>
+
+        <div><label>Marca</label><input name="marca" /></div>
+        <div><label>Modelo</label><input name="modelo" /></div>
+        <div><label>Año</label><input name="anio" type="number" min="1900" max="2050" /></div>
+        <div><label>Versión</label><input name="version" /></div>
+
+        <div>
+          <label>Transmisión</label>
+          <select name="transmision">
+            <option value=""></option><option>Manual</option><option>Automática</option><option>CVT</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Combustible</label>
+          <select name="combustible">
+            <option value=""></option><option>Gasolina</option><option>Diésel</option><option>Híbrido</option><option>Eléctrico</option>
+          </select>
+        </div>
+
+        <div><label>Kilometraje</label><input name="km" type="number" min="0" step="1" /></div>
+
+        <div>
+          <label>Tipo de odómetro</label>
+          <select name="odometro">
+            <option value=""></option><option>Digital</option><option>Analógico</option><option>No legible</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Tipo de daño</label>
+          <select name="danioTipo">
+            <option value=""></option><option>Frontal</option><option>Trasero</option><option>Lateral</option><option>Inundación</option><option>Mecánico</option><option>Hail</option><option>Vandalismo</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Grado de daño</label>
+          <select name="danioGrado">
+            <option value=""></option><option>Leve</option><option>Moderado</option><option>Severo</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Estado de arranque</label>
+          <select name="arranque">
+            <option value=""></option><option>Runs and Drives</option><option>Starts</option><option>Enhanced</option><option>No Arranca</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Título / documento</label>
+          <select name="titulo">
+            <option value=""></option><option>Limpio</option><option>Salvage</option><option>Rebuildable</option><option>Parts Only</option>
+          </select>
+        </div>
+
+        <div><label>Precio actual</label><input name="precio" type="number" min="0" step="1" /></div>
+        <div><label>Buy It Now (BIN)</label><input name="bin" type="number" min="0" step="1" /></div>
+        <div><label>Estimado</label><input name="estimado" type="number" min="0" step="1" /></div>
+
+        <div><label>Ubicación (patio/ciudad)</label><input name="ubicacion" /></div>
+        <div><label>Fecha de subasta</label><input name="fechaSubasta" type="date" /></div>
+        <div><label># de fotos</label><input name="fotosNum" type="number" min="0" /></div>
+        <div><label>Fecha de fotos</label><input name="fotosFecha" type="date" /></div>
+        <div><label>Enlace al lote</label><input name="enlace" placeholder="https://…" /></div>
+
+        <div class="form-full">
+          <label>Observaciones técnicas</label>
+          <textarea name="notas" rows="3" placeholder="Alineación, óxidos, fugas, interiores, eléctricos…"></textarea>
+        </div>
+
+        <div class="form-full">
+          <div class="section-title">Checklist visual y técnica</div>
+          <div class="check-grid">
+            <label class="inline"><input type="checkbox" name="chkCoincide" /> Coincide daño reportado vs. fotos</label>
+            <label class="inline"><input type="checkbox" name="chkChasis" /> Alineación chasis/paneles ok</label>
+            <label class="inline"><input type="checkbox" name="chkAirbag" /> Airbags intactos</label>
+            <label class="inline"><input type="checkbox" name="chkInund" /> Sin indicios de inundación</label>
+            <label class="inline"><input type="checkbox" name="chkCorrosion" /> Sin corrosión relevante</label>
+            <label class="inline"><input type="checkbox" name="chkFugas" /> Sin fugas visibles</label>
+            <label class="inline"><input type="checkbox" name="chkNeumaticos" /> Neumáticos aceptables</label>
+            <label class="inline"><input type="checkbox" name="chkElectricos" /> Eléctricos/interior aceptables</label>
+            <label class="inline"><input type="checkbox" name="chkCompresion" /> Compresión/arranque coherente</label>
+          </div>
+        </div>
+
+        <div class="form-full inline">
+          <span class="muted">Checklist:</span>
+          <span id="mChkResumen" class="success">OK</span>
+          <span class="muted">VIN:</span>
+          <span id="mVinWarn" class="danger">—</span>
+          <span id="mAlerts" class="muted"></span>
+        </div>
+
+        <div class="form-full"><hr class="sep" /></div>
+
+        <div class="form-full"><div class="section-title">Costos y ROI</div></div>
+
+        <div><label>Transporte</label><input name="cTransporte" type="number" min="0" step="1" /></div>
+        <div><label>Impuestos/fees</label><input name="cImpuestos" type="number" min="0" step="1" /></div>
+        <div><label>Gestoría</label><input name="cGestoria" type="number" min="0" step="1" /></div>
+        <div><label>Reparación (min)</label><input name="cReparacionMin" type="number" min="0" step="1" /></div>
+        <div><label>Reparación (prob)</label><input name="cReparacion" type="number" min="0" step="1" /></div>
+        <div><label>Reparación (max)</label><input name="cReparacionMax" type="number" min="0" step="1" /></div>
+
+        <div>
+          <label>Escenario</label>
+          <select name="escenario">
+            <option value="prob">Probable</option>
+            <option value="min">Mínimo</option>
+            <option value="max">Máximo</option>
+          </select>
+        </div>
+
+        <div><label>Valor reventa</label><input name="vReventa" type="number" min="0" step="1" /></div>
+
+        <div>
+          <label>Segmento</label>
+          <select name="segmento">
+            <option value="econ">Económico</option>
+            <option value="mid">Mid-range</option>
+            <option value="prem">Premium</option>
+          </select>
+        </div>
+
+        <div><label>Tope compra (manual)</label><input name="topeCompra" type="number" min="0" step="1" /></div>
+        <div><label>Coste total</label><input name="cTotal" type="number" readonly /></div>
+        <div><label>Margen</label><input name="margen" type="number" readonly /></div>
+        <div><label>ROI %</label><input name="roiPct" type="number" readonly /></div>
+        <div><label>Semáforo</label><input name="semaforo" type="text" readonly /></div>
+        <div><label>Tope puja (calc)</label><input name="topeCompraCalc" type="number" readonly /></div>
+
+        <div class="form-full"><hr class="sep" /></div>
+
+        <div class="form-full">
+          <div class="section-title">Decisión IA</div>
+          <div class="inline" style="gap:12px;flex-wrap:wrap">
+            <label>Estrategia</label>
+            <select name="strategy">
+              <option value="">(por defecto)</option>
+              <option value="conservador">Conservador</option>
+              <option value="balanceado">Balanceado</option>
+              <option value="agresivo">Agresivo</option>
+            </select>
+            <span class="pill info" id="mAiRec">—</span>
+            <span class="pill" id="mAiRisk">R —</span>
+            <span class="pill ok" id="mAiScore">Score —</span>
+            <span class="pill alt" id="mAiPx">Px —</span>
+          </div>
+          <small class="note" id="mAiReason">—</small>
+        </div>
+
+        <div class="form-full"><hr class="sep" /></div>
+
+        <div class="form-full">
+          <div class="section-title">Simulación de escenarios</div>
+          <div class="two">
+            <div>
+              <label>Δ Reparación (%)</label>
+              <input name="simRepairPct" type="number" value="0" />
+            </div>
+            <div>
+              <label>Δ Mercado / v.Reventa (%)</label>
+              <input name="simMarketPct" type="number" value="0" />
+            </div>
+            <div>
+              <label>Δ Fees/otros (%)</label>
+              <input name="simFeesPct" type="number" value="0" />
+            </div>
+            <div>
+              <label>Estrategia simulada</label>
+              <select name="simStrategy">
+                <option value="">(igual)</option>
+                <option value="conservador">Conservador</option>
+                <option value="balanceado">Balanceado</option>
+                <option value="agresivo">Agresivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="kpi" id="simOut"></div>
+
+          <div class="inline">
+            <button type="button" id="btnRunSim">Calcular simulación</button>
+            <button type="button" class="btn-accent" id="btnApplySim">Aplicar simulación al lote</button>
+            <small class="note">Aplicar actualizará campos de costos y/o v.Reventa según deltas.</small>
+          </div>
+        </div>
+
+        <div class="form-full"><hr class="sep" /></div>
+
+        <div class="form-full">
+          <div class="section-title">Comparables</div>
+          <small class="note">Pega precios de ventas comparables separados por coma o salto de línea. Se usará la mediana.</small>
+          <textarea name="comparablesRaw" rows="2" placeholder="11000, 11850, 10500, 12300"></textarea>
+          <div class="inline">
+            <span class="pill alt" id="cmpMedian">Mediana —</span>
+            <span class="pill" id="cmpUsed">Usado —</span>
+          </div>
+        </div>
+
+        <div class="form-full">
+          <div class="section-title">Galería (URLs separadas por coma)</div>
+          <textarea name="fotosUrls" rows="2" placeholder="https://...jpg, https://...png"></textarea>
+          <div id="galPreview" class="gallery" style="margin-top:8px"></div>
+        </div>
+
+        <div class="form-full">
+          <div class="section-title">Controles de administrador</div>
+          <div class="inline" style="flex-wrap:wrap">
+            <label class="inline"><input type="checkbox" name="approved" /> Aprobado</label>
+            <label class="inline"><input type="checkbox" name="locked" /> Bloqueado</label>
+            <label class="inline"><input type="checkbox" name="alertScheduled" /> Agenda configurada</label>
+            <label class="inline"><input type="checkbox" name="reserved" /> Reservar fondos</label>
+            <div class="inline">
+              <label class="small">Reserva USD</label>
+              <input name="cashReserved" type="number" min="0" step="1" placeholder="0" style="width:140px"/>
+            </div>
+            <button id="btnAdminUnlock" type="button">Desbloquear</button>
+            <button id="btnAdminApprove" type="button">Aprobar</button>
+          </div>
+          <small class="note">Lotes “Rojo” se bloquean automáticamente. Solo admin puede desbloquear.</small>
+        </div>
+
+        <div class="form-full">
+          <div class="section-title">Historial de decisiones IA</div>
+          <div id="aiHistList" class="panel full"></div>
+        </div>
+
+        <div class="form-full">
+          <div class="section-title">Historial</div>
+          <div id="histList" class="panel full"></div>
+        </div>
+
+        <div class="form-full"><hr class="sep" /></div>
+
+        <div class="form-full">
+          <div class="section-title">Subasta y automatización</div>
+          <div class="inline" style="flex-wrap:wrap">
+            <label class="inline"><input type="checkbox" name="autoBid" /> Auto-bid hasta tope</label>
+            <label class="inline"><input type="checkbox" name="watchAuction" /> Monitorear estado</label>
+            <span class="pill info" id="mAuctionState">—</span>
+            <button type="button" id="btnStartAutoBid">Iniciar auto-bid</button>
+            <button type="button" id="btnStopAutoBid">Detener auto-bid</button>
+          </div>
+          <small class="note">Si se gana, se cambiará a “Comprado” y se abrirá flujo de reparación/reventa. Si se pierde, “Descartado”.</small>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Configuración -->
+<div class="modal-backdrop" id="cfgBk">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
+    <header>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <h2 id="cfgTitle">Configuración del sistema</h2>
+        <div class="inline">
+          <button class="btn-ghost" id="btnCfgClose">Cerrar</button>
+          <button class="btn-accent" id="btnCfgSave">Guardar</button>
+        </div>
+      </div>
+    </header>
+    <div class="body">
+      <form id="frmCfg" class="grid form-grid">
+        <div class="form-full"><div class="section-title">Parámetros iniciales</div></div>
+
+        <div><label>WhatsApp (alertas)</label><input name="waNumber" placeholder="Ej. 51313740" /></div>
+        <div><label>Hora de alerta (HH:MM)</label><input name="alertHour" placeholder="08:30" /></div>
+        <div><label>Mín. ROI Económico (%)</label><input name="roiEcon" type="number" value="18" /></div>
+        <div><label>Mín. ROI Mid-range (%)</label><input name="roiMid" type="number" value="22" /></div>
+        <div><label>Mín. ROI Premium (%)</label><input name="roiPrem" type="number" value="25" /></div>
+
+        <div class="form-full inline">
+          <label class="inline"><input type="checkbox" name="autoBlockRed" checked /> Bloqueo automático “Rojo”</label>
+          <label class="inline"><input type="checkbox" name="alertsWA" checked /> WhatsApp</label>
+          <label class="inline"><input type="checkbox" name="alertsSMS" /> SMS</label>
+          <label class="inline"><input type="checkbox" name="alertsEmail" /> Email</label>
+          <label class="inline"><input type="checkbox" name="alertsPush" /> Push</label>
+        </div>
+
+        <div class="form-full"><div class="section-title">IA</div></div>
+
+        <div>
+          <label>Estrategia IA</label>
+          <select name="iaStrategy">
+            <option value="conservador">Conservador</option>
+            <option value="balanceado" selected>Balanceado</option>
+            <option value="agresivo">Agresivo</option>
+          </select>
+        </div>
+
+        <div><label>Bias mercado Económico (-10..10)</label><input name="biasEcon" type="number" value="0" /></div>
+        <div><label>Bias mercado Mid (-10..10)</label><input name="biasMid" type="number" value="0" /></div>
+        <div><label>Bias mercado Premium (-10..10)</label><input name="biasPrem" type="number" value="0" /></div>
+        <div><label>Ajuste ROI por estrategia (%)</label><input name="aiMinRoiAdjust" type="number" value="0" /></div>
+
+        <div class="form-full inline">
+          <label class="inline"><input type="checkbox" name="enableComparables" /> Comparables dinámicos</label>
+          <label class="inline"><input type="checkbox" name="predictiveAlerts" checked /> Alertas predictivas</label>
+          <label class="inline"><input type="checkbox" name="opportunityAlerts" checked /> Alertas de oportunidad</label>
+          <label class="inline"><input type="checkbox" name="enableLearning" checked /> Aprendizaje continuo</label>
+        </div>
+
+        <div><label>Tendencia Económico (% trim.)</label><input name="trendEcon" type="number" value="0" /></div>
+        <div><label>Tendencia Mid-range (% trim.)</label><input name="trendMid" type="number" value="0" /></div>
+        <div><label>Tendencia Premium (% trim.)</label><input name="trendPrem" type="number" value="0" /></div>
+        <div><label>Peso comparables (%)</label><input name="cmpWeight" type="number" value="60" /></div>
+
+        <div class="form-full"><div class="section-title">Caja y prioridades</div></div>
+        <div><label>Presupuesto mensual (USD)</label><input name="budgetMonthly" type="number" value="10000" /></div>
+        <div><label>Liquidez disponible (USD)</label><input name="cashAvailable" type="number" value="10000" /></div>
+        <div><label>Umbral alerta ROI alto (%)</label><input name="oppRoiThresh" type="number" value="30" /></div>
+        <div><label>Horas ventana subasta (h)</label><input name="oppHoursWindow" type="number" value="24" /></div>
+
+        <div class="form-full"><div class="section-title">Subasta y automatización</div></div>
+        <div>
+          <label>Auto-bid global</label>
+          <select name="autoBidMode">
+            <option value="off">Apagado</option>
+            <option value="safe">Conservador</option>
+            <option value="on">Balanceado</option>
+            <option value="agg">Agresivo</option>
+          </select>
+        </div>
+        <div><label>Ventana auto-bid (min antes)</label><input name="autoBidWindowMin" type="number" value="60" /></div>
+
+        <div class="form-full"><div class="section-title">Seguridad y roles</div></div>
+        <div>
+          <label>Rol actual</label>
+          <select name="currentRole">
+            <option value="admin">Admin</option>
+            <option value="operator" selected>Operador</option>
+          </select>
+        </div>
+        <div class="form-full inline">
+          <label class="inline"><input type="checkbox" name="restrictCritical" checked /> Restringir cambios críticos a admin</label>
+        </div>
+
+        <div class="form-full"><div class="section-title">Firmas y backup</div></div>
+        <div class="form-full inline">
+          <label class="inline"><input type="checkbox" name="signExports" checked /> Firmar JSON/PDF (hash SHA-256)</label>
+          <label class="inline"><input type="checkbox" name="signLogs" checked /> Firmar logs en tiempo real (cadena)</label>
+        </div>
+        <div><label>Backup URL (POST JSON)</label><input name="backupUrl" placeholder="https://tu-servidor/endpoint" /></div>
+        <div class="form-full inline">
+          <label class="inline"><input type="checkbox" name="enableCloudBackup" /> Backup automático a la nube</label>
+          <label class="inline"><input type="checkbox" name="backupIncludeLogs" checked /> Incluir logs</label>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Optimización -->
+<div class="modal-backdrop" id="optBk">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="optTitle">
+    <header>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <h2 id="optTitle">Optimización de cartera</h2>
+        <div class="inline">
+          <button class="btn-ghost" id="btnOptClose">Cerrar</button>
+          <button class="btn-accent" id="btnOptApply">Aplicar selección</button>
+        </div>
+      </div>
+    </header>
+    <div class="body">
+      <div class="section-title">Resultado</div>
+      <div id="optSummary" class="kpi"></div>
+      <div class="section-title">Selección</div>
+      <div id="optList" class="panel full"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Auction -->
+<div class="modal-backdrop" id="auctionBk">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="auctionTitle">
+    <header>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <h2 id="auctionTitle">Modo Subasta — Lotes activos</h2>
+        <div class="inline">
+          <button class="btn-ghost" id="btnAuctionClose">Cerrar</button>
+        </div>
+      </div>
+    </header>
+    <div class="body">
+      <div class="kpi" id="auctionKpi"></div>
+      <div id="auctionList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Web viewer -->
+<div class="webpane" id="webPane">
+  <header>
+    <div class="title" id="webTitle">Visor</div>
+    <div class="inline">
+      <button id="btnReloadView">Recargar</button>
+      <button class="btn-ghost" id="btnCloseView">Cerrar visor</button>
+    </div>
+  </header>
+  <iframe id="webFrame" referrerpolicy="no-referrer" sandbox="allow-forms allow-scripts allow-popups allow-pointer-lock allow-same-origin"></iframe>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Notificación</div>
+
+<script>
+(() => {
+  /* --- Claves de almacenamiento --- */
+  const LS_KEY = 'copart_aa_lotes_v1';
+  const LS_LOG = 'copart_aa_logs_v1';
+  const LS_CFG = 'copart_aa_config_v1';
+
+  /* --- Utilidades DOM --- */
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  /* --- Estado --- */
+  let data = [];
+  let logs = [];
+  let sort = { key:'fechaSubasta', dir:'asc' };
+  let editingId = null;
+  let autosaveTimer = null;
+  let pendingOpen = null;
+  let handsFree = false;
+  let cfg = {
+    waNumber: '51313740',
+    alertHour: '08:30',
+    roiEcon: 18, roiMid: 22, roiPrem: 25,
+    autoBlockRed: true,
+    alertsWA: true, alertsSMS: false, alertsEmail: false, alertsPush: false,
+    signExports: true,
+    signLogs: true,
+    iaStrategy: 'balanceado',
+    marketBiasBySeg: { econ:0, mid:0, prem:0 },
+    aiMinRoiAdjust: 0,
+    enableComparables: false,
+    predictiveAlerts: true,
+    opportunityAlerts: true,
+    trendBySeg: { econ:0, mid:0, prem:0 },
+    cmpWeight: 60,
+    budgetMonthly: 10000,
+    cashAvailable: 10000,
+    oppRoiThresh: 30,
+    oppHoursWindow: 24,
+    enableLearning: true,
+    learnStats: { buys:0, discards:0, good:0, bad:0 },
+    autoBidMode: 'off',
+    autoBidWindowMin: 60,
+    currentRole: 'operator',
+    restrictCritical: true,
+    enableCloudBackup: false,
+    backupIncludeLogs: true,
+    backupUrl: '',
+    lastLogHash: ''
+  };
+
+  const fmt = {
+    money: v => (v || v === 0) ? new Intl.NumberFormat('es-ES',{maximumFractionDigits:0}).format(v) : '',
+    date: v => v ? new Date(v).toISOString().slice(0,10) : '',
+    num: v => Number.isFinite(v) ? new Intl.NumberFormat('es-ES',{maximumFractionDigits:0}).format(v) : '',
+  };
+
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+  function nowIso(){ return new Date().toISOString(); }
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function asNum(v){ const n = Number(v); return Number.isFinite(n) ? n : null; }
+  function showToast(msg){ const t = $('#toast'); if(!t) return; t.textContent = msg; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 2200); }
+  function daysTo(dateStr){ if(!dateStr) return null; const d = new Date(dateStr); if(isNaN(+d)) return null; const ms = d.setHours(12,0,0,0) - new Date().setHours(12,0,0,0); return Math.round(ms/86400000); }
+  function hoursTo(dateStr){ if(!dateStr) return null; const d = new Date(dateStr); if(isNaN(+d)) return null; const ms = d.getTime() - Date.now(); return Math.round(ms/3600000); }
+
+  /* --- Persistencia --- */
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(data)); localStorage.setItem(LS_LOG, JSON.stringify(logs)); localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }
+  function load(){
+    try{ data = JSON.parse(localStorage.getItem(LS_KEY)||'[]')||[]; }catch(e){ data = []; }
+    try{ logs = JSON.parse(localStorage.getItem(LS_LOG)||'[]')||[]; }catch(e){ logs = []; }
+    try{
+      const prev = JSON.parse(localStorage.getItem(LS_CFG)||'{}')||{};
+      cfg = {...cfg, ...prev};
+      if(prev.trendEcon!==undefined || prev.trendMid!==undefined || prev.trendPrem!==undefined){
+        cfg.trendBySeg = { econ: asNum(prev.trendEcon)||0, mid: asNum(prev.trendMid)||0, prem: asNum(prev.trendPrem)||0 };
+      }
+    }catch(e){}
+  }
+
+  /* --- Operaciones financieras y IA (simplificadas, robustas) --- */
+  function parseComparables(raw){
+    const parts = String(raw||'').split(/[\s,;]+/).map(s=>asNum(s)).filter(n=>Number.isFinite(n) && n>0);
+    if(!parts.length) return {median:null, list:[]};
+    const arr = parts.sort((a,b)=>a-b);
+    const mid = Math.floor(arr.length/2);
+    const median = (arr.length%2) ? arr[mid] : Math.round((arr[mid-1]+arr[mid])/2);
+    return {median, list:arr};
+  }
+
+  function marketBias(seg){
+    const b = cfg.marketBiasBySeg || {econ:0,mid:0,prem:0};
+    return (seg==='prem'? b.prem : seg==='mid'? b.mid : b.econ) || 0;
+  }
+
+  function adjustedReventa(r){
+    const seg = (r.segmento||'econ');
+    const base = r.vReventa||0;
+    let val = base;
+    if(cfg.enableComparables){
+      const cmp = parseComparables(r.comparablesRaw||'');
+      if(cmp.median){
+        const w = Math.max(0, Math.min(100, cfg.cmpWeight||60))/100;
+        val = Math.round(base*(1-w) + cmp.median*w);
+      }
+      const trendPct = (seg==='prem'? cfg.trendBySeg.prem : seg==='mid'? cfg.trendBySeg.mid : cfg.trendBySeg.econ) || 0;
+      const bias = marketBias(seg);
+      val = Math.round(val * (1 + (trendPct/100)) + (bias*100));
+    }
+    return Math.max(0, val);
+  }
+
+  function pickRepairCost(r){
+    const escn = r.escenario || 'prob';
+    if(escn==='min') return r.cReparacionMin||0;
+    if(escn==='max') return r.cReparacionMax||0;
+    return r.cReparacion||0;
+  }
+
+  function minRoiBySeg(seg){
+    if(seg==='prem') return cfg.roiPrem||25;
+    if(seg==='mid') return cfg.roiMid||22;
+    return cfg.roiEcon||18;
+  }
+
+  function calcROI(r){
+    const precio = (r.precio ?? r.bin ?? 0) || 0;
+    const cT = (r.cTransporte||0)+(r.cImpuestos||0)+(r.cGestoria||0)+pickRepairCost(r);
+    const cTotal = precio + cT;
+    const vRevUsed = adjustedReventa(r);
+    const margen = vRevUsed - cTotal;
+    const roiPct = (vRevUsed ? Math.round((margen/(cTotal||1))*100) : null);
+    return { precio, cT, cTotal, margen, roiPct, vRevUsed };
+  }
+
+  function rowSemaforo(r){
+    const fin = calcROI(r);
+    if(fin.roiPct===null) return {txt:'—', cls:'info', icon:'•'};
+    const minR = minRoiBySeg(r.segmento||'econ');
+    if(fin.roiPct>=minR && fin.margen>0) return {txt:'Verde (comprar)', cls:'ok', icon:'🟢'};
+    if(fin.roiPct>=10 && fin.margen>0) return {txt:'Amarillo (vigilar)', cls:'warn', icon:'🟡'};
+    return {txt:'Rojo (descartar)', cls:'bad', icon:'🔴'};
+  }
+
+  function calcRiskScore(r){
+    let score = 0;
+    if(r.titulo==='Salvage') score += 20;
+    else if(r.titulo==='Rebuildable') score += 15;
+    else if(r.titulo==='Parts Only') score += 40;
+    if(r.danioTipo==='Inundación') score += 35;
+    else if(r.danioTipo==='Mecánico') score += 15;
+    else if(r.danioTipo==='Frontal' || r.danioTipo==='Lateral' || r.danioTipo==='Trasero') score += 10;
+    if(r.danioGrado==='Severo') score += 20;
+    else if(r.danioGrado==='Moderado') score += 10;
+    if(r.arranque==='No Arranca') score += 25;
+    else if(r.arranque==='Starts') score += 10;
+    else if(r.arranque==='Enhanced') score += 5;
+    const km = r.km || 0;
+    if(km>240000) score += 20;
+    else if(km>160000) score += 10;
+    const fin = calcROI(r);
+    if((fin.roiPct??0) <= 0) score += 20;
+    // vision penalty (basic)
+    const checks = [r.chkCoincide,r.chkChasis,r.chkAirbag,r.chkInund,r.chkCorrosion,r.chkFugas,r.chkNeumaticos,r.chkElectricos];
+    const missing = checks.filter(x=>!x).length;
+    score += missing * 2;
+    if(r.fotosNum && r.fotosNum<6) score += (6 - r.fotosNum);
+    return Math.max(0, Math.min(100, score));
+  }
+
+  function predictClosePrice(r){
+    const baseCandidates = [];
+    if(r.precio) baseCandidates.push(r.precio);
+    if(r.bin) baseCandidates.push(Math.round(r.bin*0.7));
+    if(r.estimado) baseCandidates.push(Math.round(r.estimado*0.85));
+    if(r.topeCompraCalc) baseCandidates.push(Math.round(r.topeCompraCalc*0.98));
+    const segAdj = (r.segmento==='prem'? 1.08 : r.segmento==='mid'? 1.03 : 1.00);
+    const meanBase = baseCandidates.length ? Math.round(baseCandidates.reduce((a,b)=>a+b,0)/baseCandidates.length) : 0;
+    let mean = Math.max(0, Math.round(meanBase * segAdj));
+    const risk = calcRiskScore(r);
+    mean = Math.round(mean * (1 - Math.min(0.12, (risk-40)/1000)));
+    const bias = marketBias(r.segmento||'econ');
+    mean = Math.max(0, mean + bias*100);
+    const std = Math.max(150, Math.round(mean * (0.03 + Math.max(0, risk-30)/400)));
+    return { mean, std };
+  }
+
+  function decideAI(r){
+    const fin = calcROI(r);
+    const seg = r.segmento || 'econ';
+    const minRoi = minRoiBySeg(seg) + (cfg.aiMinRoiAdjust||0);
+    const bias = marketBias(seg);
+    const risk = calcRiskScore(r);
+    const topeCalc = calcTopeCompra(r);
+    const pred = predictClosePrice(r);
+    let bidSug = Math.min(topeCalc, pred.mean);
+    if(r.topeCompra && r.topeCompra>0) bidSug = Math.min(bidSug, r.topeCompra);
+    const roi = (fin.roiPct??0);
+    const margin = (fin.margen??-999999);
+    let aiScore = Math.max(0, roi) * 0.55 + Math.max(0, margin/1000) * 0.2 + (100 - risk) * 0.2 + bias + Math.max(0, (topeCalc - pred.mean)/100) * 0.05;
+    aiScore = Math.max(0, Math.min(100, Math.round(aiScore)));
+    let aiRec = 'Vigilar';
+    if(roi >= (minRoi) && margin>0 && risk<45) aiRec = 'Comprar';
+    else if(roi < 10 || margin<=0 || risk>=70) aiRec = 'Descartar';
+    const reasons = [];
+    reasons.push(`ROI ${roi??'—'}% (mín ${minRoi}%)`);
+    reasons.push(`Margen ${fmt.money(margin)}`);
+    reasons.push(`Riesgo ${risk}/100`);
+    reasons.push(`Tope ${fmt.money(topeCalc)}`);
+    reasons.push(`Px ${fmt.money(pred.mean)} ± ${fmt.money(pred.std)}`);
+    if(bias!==0) reasons.push(`Bias ${bias>0? '+'+bias:bias}`);
+    const aiReason = `${aiRec}: ${reasons.join(' • ')}`;
+    return {
+      aiRec, aiReason, aiScore, riskScore: risk, bidSuggestion: Math.max(0, bidSug),
+      predictedPrice: pred.mean, predictedUnc: pred.std, probUnderTope: pred.std>0 ? Math.max(0, Math.min(100, Math.round(50 + ((topeCalc - pred.mean)/pred.std)*40))) : 0,
+      roiNow: roi, marginNow: margin
+    };
+  }
+
+  function calcTopeCompra(r){
+    const segMin = minRoiBySeg(r.segmento||'econ');
+    const roiTarget = (segMin/100);
+    const cSinCompra = (r.cTransporte||0)+(r.cImpuestos||0)+(r.cGestoria||0)+pickRepairCost(r);
+    const vRev = adjustedReventa(r) || 0;
+    return Math.max(0, Math.round((vRev/(1+roiTarget)) - cSinCompra));
+  }
+
+  /* --- Logging simple --- */
+  async function logEvent(type, detail, id){
+    const entry = { id: uid(), ts: Date.now(), when: nowIso(), type, detail, loteId: id||null };
+    logs.push(entry); if(logs.length>5000) logs.shift();
+    save();
+  }
+
+  /* --- Render y lógica UI --- */
+  function counters(){
+    $('#statTotal').textContent = data.length;
+    $('#statRevision').textContent = data.filter(r=>r.estado==='En revisión').length;
+    $('#statPuja').textContent = data.filter(r=>r.estado==='Puja activa').length;
+    $('#statListo').textContent = data.filter(r=>r.estado==='Listo').length;
+    $('#statDesc').textContent = data.filter(r=>r.estado==='Descartado').length;
+    $('#statChkOk').textContent = data.filter(r=>r.checkOk).length;
+    $('#statRoi').textContent = data.filter(r=> (calcROI(r).roiPct||0) >= 20).length;
+  }
+
+  function applyFilters(rows){
+    const f = {
+      plataforma: $('#fPlataforma').value.trim(),
+      text: ($('#fText').value||'').trim().toLowerCase(),
+      danio: $('#fDanio').value.trim(),
+      titulo: $('#fTitulo').value.trim(),
+      arranque: $('#fArranque').value.trim(),
+      estado: $('#fEstado').value.trim(),
+      yMin: parseInt($('#fYearMin').value)||null,
+      yMax: parseInt($('#fYearMax').value)||null,
+      kmMax: parseInt($('#fKmMax').value)||null,
+      ubic: ($('#fUbic').value||'').trim().toLowerCase(),
+      fMin: $('#fFechaMin').value? new Date($('#fFechaMin').value):null,
+      fMax: $('#fFechaMax').value? new Date($('#fFechaMax').value):null,
+    };
+    return rows.filter(r=>{
+      if(f.plataforma && r.plataforma!==f.plataforma) return false;
+      if(f.danio && r.danioTipo!==f.danio) return false;
+      if(f.titulo && r.titulo!==f.titulo) return false;
+      if(f.arranque && r.arranque!==f.arranque) return false;
+      if(f.estado && r.estado!==f.estado) return false;
+      if(f.yMin && (+r.anio||0)<f.yMin) return false;
+      if(f.yMax && (+r.anio||0)>f.yMax) return false;
+      if(f.kmMax && (+r.km||0)>f.kmMax) return false;
+      if(f.ubic && !(r.ubicacion||'').toLowerCase().includes(f.ubic)) return false;
+      if(f.fMin){ const d = r.fechaSubasta? new Date(r.fechaSubasta):null; if(!d || d < f.fMin) return false; }
+      if(f.fMax){ const d = r.fechaSubasta? new Date(r.fechaSubasta):null; if(!d || d > f.fMax) return false; }
+      if(f.text){
+        const blob = [r.vin,r.lote,r.marca,r.modelo,r.version,r.ubicacion,r.titulo,r.danioTipo,r.estado,r.notas].filter(Boolean).join(' ').toLowerCase();
+        if(!blob.includes(f.text)) return false;
+      }
+      return true;
+    });
+  }
+
+  function sortRows(rows){
+    const k = sort.key, d = sort.dir==='asc'?1:-1;
+    return rows.sort((a,b)=>{
+      const av = (a[k] ?? ''), bv = (b[k] ?? '');
+      if(['anio','km','precio','bin','estimado','topeCompraCalc'].includes(k)){
+        return (Number(av||0)-Number(bv||0))*d;
+      }
+      if(k==='fechaSubasta'){
+        return ((av? new Date(av).getTime():0) - (bv? new Date(bv).getTime():0))*d;
+      }
+      const as = String(av).toLowerCase(), bs = String(bv).toLowerCase();
+      if(as<bs) return -1*d; if(as>bs) return 1*d; return 0;
+    });
+  }
+
+  function alertBadges(r){
+    const out = [];
+    const d = daysTo(r.fechaSubasta);
+    if(d!==null && d<=2) out.push('<span class="pill warn">⏰ Subasta en '+d+'d</span>');
+    const fin = calcROI(r);
+    if(r.topeCompra && r.precio && r.precio>r.topeCompra) out.push('<span class="pill bad">💸 Precio > tope</span>');
+    if(fin.roiPct!==null && fin.roiPct<0) out.push('<span class="pill bad">📉 ROI negativo</span>');
+    if(r.reserved) out.push('<span class="pill info" title="Fondos reservados">CASH</span>');
+    if(r._optPick) out.push('<span class="pill info" title="Seleccionado por optimización">OPT</span>');
+    if(r.autoBidActive) out.push('<span class="pill alt" title="Auto-bid activo">AUTO</span>');
+    return out.join(' ');
+  }
+
+  function render(){
+    counters();
+    renderSuggestions();
+    renderCriticalPanel();
+    const rows = sortRows(applyFilters([...data]));
+    const tbody = $('#tbody');
+    tbody.innerHTML = '';
+    for(const r of rows){
+      const fin = calcROI(r);
+      const sem = rowSemaforo(r);
+      const topeCalc = calcTopeCompra(r);
+      r.topeCompraCalc = topeCalc;
+      const ai = decideAI(r);
+      Object.assign(r, ai);
+      r.checkOk = [
+        r.chkCoincide,r.chkChasis,r.chkAirbag,r.chkInund,r.chkCorrosion,r.chkFugas,r.chkNeumaticos,r.chkElectricos
+      ].every(Boolean);
+      const riskCls = (r.riskScore>=60?'bad':(r.riskScore>=35?'warn':'ok'));
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+<td><span class="badge ${esc(r.plataforma)}">${esc(r.plataforma||'')}</span></td>
+<td class="wrap" title="${esc(r.lote||'')}">${esc(r.lote||'')}</td>
+<td class="wrap" title="${esc(r.vin||'')}">${esc(r.vin||'')}</td>
+<td>${esc(r.marca||'')}</td>
+<td>${esc(r.modelo||'')}</td>
+<td>${esc(r.anio||'')}</td>
+<td>${esc(r.km||'')}</td>
+<td>${esc(r.danioTipo||'')}</td>
+<td>${esc(r.arranque||'')}</td>
+<td>${esc(r.titulo||'')}</td>
+<td class="wrap" title="${esc(r.ubicacion||'')}">${esc(r.ubicacion||'')}</td>
+<td>${esc(fmt.date(r.fechaSubasta))} ${alertBadges(r)}</td>
+<td>${esc(fmt.money(r.precio))}</td>
+<td>${esc(fmt.money(r.bin))}</td>
+<td class="status">${esc(r.estado||'')}</td>
+<td>
+${r.checkOk? '✅':'⚠️'}
+<span class="pill ${sem.cls}" title="ROI: ${fin.roiPct??'—'}%, Margen: ${fin.margen??'—'}">${sem.icon}</span>
+</td>
+<td>${fmt.money(topeCalc)}</td>
+<td title="± ${fmt.money(r.predictedUnc||0)}">${fmt.money(r.predictedPrice||0)}</td>
+<td>
+<span class="pill info" title="${esc(r.aiReason||'')}">${esc(r.aiRec||'—')}</span>
+<span class="pill ${riskCls}" title="Riesgo: ${r.riskScore??'—'}">R ${r.riskScore??'—'}</span>
+<span class="pill" title="Score IA">${r.aiScore??'—'}</span>
+</td>
+<td>${fmt.money(r.bidSuggestion)}</td>
+<td>
+${(r.locked?'<span class="badge lock">🔒</span>':'')}
+${(r.approved?'<span class="badge approved">✔︎</span>':'')}
+${(r.reserved?'<span class="badge cash">💠</span>':'')}
+${(r._optPick?'<span class="badge opt">OPT</span>':'')}
+${(r.autoBidActive?'<span class="badge mode">AUTO</span>':'')}
+</td>
+<td>${r.enlace? `<a class="link" data-open="${esc(r.enlace)}" href="${esc(r.enlace)}">Abrir</a>`:''}</td>
+<td class="row-actions">
+<button title="Editar" data-act="edit" data-id="${r.id}">✏️</button>
+<button title="Duplicar" data-act="dup" data-id="${r.id}">📄</button>
+<button title="Galería" data-act="gal" data-id="${r.id}">🖼️</button>
+<button title="Historial" data-act="hist" data-id="${r.id}">📜</button>
+<button title="Auto-bid" data-act="auto" data-id="${r.id}">🎯</button>
+<button title="Eliminar" data-act="del" data-id="${r.id}">🗑️</button>
+</td>`;
+      tbody.appendChild(tr);
+    }
+    renderDashboard();
+    bindLinkOpener();
+    save();
+  }
+
+  function renderSuggestions(){
+    const dl = $('#sugText');
+    const set = new Set();
+    for(const r of data){
+      [r.vin,r.lote,r.marca,r.modelo,r.version,r.ubicacion,r.titulo,r.danioTipo].filter(Boolean).forEach(v=>set.add(String(v)));
+    }
+    dl.innerHTML = '';
+    Array.from(set).slice(0,100).forEach(v=>{
+      const o = document.createElement('option'); o.value = v; dl.appendChild(o);
+    });
+  }
+
+  function renderDashboard(){
+    const est = ['En revisión','Puja activa','Listo','Descartado','Comprado'];
+    const counts = Object.fromEntries(est.map(e=>[e, data.filter(r=>r.estado===e).length]));
+    const total = Math.max(1, data.length);
+    const barE = $('#barEstados');
+    barE.innerHTML = est.map(e=>{
+      const pct = Math.round((counts[e]/total)*100);
+      const col = (e==='Listo'?'#16a34a':e==='Descartado'?'#ef4444':e==='Puja activa'?'#f59e0b':'#2563eb');
+      return `<div class="row"><span style="width:120px" class="muted">${e}</span><div class="meter"><span style="width:${pct}%;background:${col}"></span></div><span style="width:40px;text-align:right">${counts[e]}</span></div>`;
+    }).join('');
+    const danos = ['Frontal','Trasero','Lateral','Inundación','Mecánico','Hail','Vandalismo'];
+    const dCounts = Object.fromEntries(danos.map(x=>[x, data.filter(r=>r.danioTipo===x).length]));
+    const barD = $('#barDanios');
+    barD.innerHTML = danos.map(x=>{
+      const pct = Math.round((dCounts[x]/total)*100);
+      return `<div class="row"><span style="width:120px" class="muted">${x}</span><div class="meter"><span style="width:${pct}%"></span></div><span style="width:40px;text-align:right">${dCounts[x]}</span></div>`;
+    }).join('');
+    const roiBuckets = { 'ROI ≥ 25%':'#16a34a', '10–24%':'#f59e0b', '< 10%':'#ef4444' };
+    let bCounts = { 'ROI ≥ 25%':0,'10–24%':0,'< 10%':0 };
+    for(const r of data){
+      const {roiPct,margen} = calcROI(r); if(roiPct===null || margen===null) continue;
+      if(roiPct>=25 && margen>0) bCounts['ROI ≥ 25%']++;
+      else if(roiPct>=10 && margen>0) bCounts['10–24%']++;
+      else bCounts['< 10%']++;
+    }
+    $('#pieRoi').innerHTML = Object.keys(roiBuckets).map(k=>{
+      const color = roiBuckets[k];
+      return `<span class="tag"><span class="dot" style="background:${color}"></span>${k}: ${bCounts[k]}</span>`;
+    }).join('');
+    const top = [...data].map(r=>({r, m:(calcROI(r).margen||-Infinity)})).sort((a,b)=>b.m-a.m).slice(0,5);
+    $('#roiTop').innerHTML = top.map(t=>`<div class="row"><span class="wrap" style="max-width:220px">${esc(t.r.marca||'')} ${esc(t.r.modelo||'')} ${esc(t.r.anio||'')}</span><span class="pill ok">Δ ${fmt.money(t.m)}</span></div>`).join('');
+    renderPriorities();
+    renderCashKpi();
+  }
+
+  function renderCriticalPanel(){
+    let g = {verde:0, amarillo:0, rojo:0};
+    data.forEach(r=>{
+      const s = rowSemaforo(r).cls;
+      if(s==='ok') g.verde++;
+      else if(s==='warn') g.amarillo++;
+      else if(s==='bad') g.rojo++;
+    });
+    $('#globSem').innerHTML = [`<span class="pill ok">Verde: ${g.verde}</span>`,`<span class="pill warn">Amarillo: ${g.amarillo}</span>`,`<span class="pill bad">Rojo: ${g.rojo}</span>`].join(' ');
+    const urgent = data.filter(r=>{ const h = hoursTo(r.fechaSubasta); return h!==null && h>=0 && h<=24; }).length;
+    const roi25 = data.filter(r=> (calcROI(r).roiPct||0)>=25).length;
+    const locked = data.filter(r=>r.locked).length;
+    const autob = data.filter(r=>r.autoBidActive).length;
+    $('#critKpi').innerHTML = [`<span class="pill warn">Urgentes 24h: ${urgent}</span>`,`<span class="pill ok">ROI ≥25%: ${roi25}</span>`,`<span class="pill bad">Bloqueados: ${locked}</span>`,`<span class="pill alt">Auto-bid: ${autob}</span>`].join(' ');
+    const crits = data
+      .map(r=>{ const h = hoursTo(r.fechaSubasta); const fin = calcROI(r); return {r, h, fin}; })
+      .filter(x=> (x.h!==null && x.h<=24 && x.h>=0) || (x.fin.roiPct||0)>=25)
+      .sort((a,b)=> (a.h??999) - (b.h??999) || (b.fin.roiPct||0) - (a.fin.roiPct||0))
+      .slice(0,8);
+    $('#critList').innerHTML = crits.map(x=>`<div class="crititem"><span class="wrap" style="max-width:220px">${esc(x.r.marca||'')} ${esc(x.r.modelo||'')} ${esc(x.r.anio||'')}</span><span class="pill ${rowSemaforo(x.r).cls}">${rowSemaforo(x.r).icon}</span><span class="pill">ROI ${x.fin.roiPct??'—'}%</span><span class="pill ${x.h!==null&&x.h<=24?'warn':'info'}">${x.h!==null?('⏳ '+x.h+'h'):'—'}</span><button data-act="edit" data-id="${x.r.id}">Abrir</button></div>`).join('') || `<span class="muted">Sin alertas por ahora</span>`;
+  }
+
+  function renderPriorities(){
+    // placeholder: fill prioList
+    $('#prioList').innerHTML = `<div class="tag">Sin prioridades definidas</div>`;
+  }
+
+  function totalReserved(){ return data.reduce((a,r)=> a + (r.reserved? (r.cashReserved||r.topeCompraCalc||0) : 0), 0); }
+
+  function autoReserveFunds(){
+    let avail = cfg.cashAvailable||0;
+    for(const r of data){
+      if(r.estado==='Puja activa' && !r.reserved && r.topeCompraCalc>0){
+        if(avail>=r.topeCompraCalc){
+          r.reserved = true;
+          r.cashReserved = r.topeCompraCalc;
+          avail -= r.cashReserved;
+        }
+      }
+    }
+  }
+
+  function renderCashKpi(){
+    const k = $('#cashKpi');
+    const reserved = totalReserved();
+    const avail = Math.max(0, (cfg.cashAvailable||0) - reserved);
+    k.innerHTML = [
+      `<span class="pill alt">Liquidez: ${fmt.money(cfg.cashAvailable||0)}</span>`,
+      `<span class="pill info">Reservado: ${fmt.money(reserved)}</span>`,
+      `<span class="pill ${avail>0?'ok':'bad'}">Disponible: ${fmt.money(avail)}</span>`
+    ].join(' ');
+  }
+
+  function computeAccuracy(){
+    const buys = data.filter(r=>r.estado==='Comprado');
+    let correct=0, total=0;
+    for(const r of buys){
+      if(r._closePrice && r.predictedPrice){
+        const diff = Math.abs(r._closePrice - r.predictedPrice);
+        const within = (diff <= Math.max(200, r.predictedUnc||0));
+        total++; if(within) correct++;
+      }
+    }
+    const pct = total? Math.round((correct/total)*100): null;
+    $('#aiAccKpi').innerHTML = [
+      `<span class="pill info">Predicciones evaluadas: ${total}</span>`,
+      `<span class="pill ${pct===null?'info':(pct>=60?'ok':'warn')}">Acierto ±σ: ${pct===null?'—':pct+'%'}</span>`
+    ].join(' ');
+  }
+
+  /* --- Modal / form helpers --- */
+  function openModal(row){
+    editingId = row ? row.id : null;
+    $('#modTitle').textContent = row? `Editar lote ${row.lote||''}` : 'Nuevo lote';
+    $('#mCreado').textContent = row? (new Date(row.createdAt).toLocaleString()) : '—';
+    $('#mActualizado').textContent = row? (new Date(row.updatedAt||row.createdAt).toLocaleString()) : '—';
+    const form = $('#frm'); form.reset();
+    const set = (name, val)=>{ const el = form.elements[name]; if(!el) return; if(el.type==='checkbox'){ el.checked = !!val; } else { el.value = (val??''); } };
+    const fields = ['plataforma','lote','vin','estado','marca','modelo','anio','version','transmision','combustible','km','odometro','danioTipo','danioGrado','arranque','titulo','precio','bin','estimado','ubicacion','fechaSubasta','fotosNum','fotosFecha','enlace','notas','cTransporte','cImpuestos','cGestoria','cReparacionMin','cReparacion','cReparacionMax','vReventa','topeCompra','cTotal','margen','roiPct','semaforo','fotosUrls','segmento','escenario','topeCompraCalc','strategy','aiRec','aiReason','aiScore','riskScore','bidSuggestion','comparablesRaw','reserved','cashReserved','autoBid','watchAuction'];
+    for(const k of fields){ set(k, row? row[k]: ''); }
+    set('approved', row?.approved);
+    set('locked', row?.locked);
+    set('alertScheduled', row?.alertScheduled);
+    set('simRepairPct', 0); set('simMarketPct', 0); set('simFeesPct', 0); set('simStrategy', '');
+    updateChkSummary();
+    updateFinance();
+    const aiOut = decideAI(row || collectForm());
+    $('#mAiRec').textContent = aiOut.aiRec;
+    $('#mAiReason').textContent = aiOut.aiReason;
+    $('#mAiRisk').textContent = `R ${aiOut.riskScore}`;
+    $('#mAiScore').textContent = `Score ${aiOut.aiScore}`;
+    $('#mAiPx').textContent = `Px ${fmt.money(aiOut.predictedPrice)}±${fmt.money(aiOut.predictedUnc)}`;
+    $('#mAuctionState').textContent = row?.autoBidActive ? 'Auto-bid activo' : (row?.watchAuction?'Monitoreo activo':'—');
+    renderHist(row?.hist||[]);
+    renderAiTrail(row?.aiTrail||[]);
+    renderComparablesInfo();
+    renderGalleryPreview();
+    $('#modalBk').style.display='flex';
+    setTimeout(()=> { if(form.elements['lote']) form.elements['lote'].focus(); }, 60);
+
+    $('#btnAdminUnlock').onclick = async ()=>{
+      if(!canDoCritical()){ alert('Requiere rol admin.'); return; }
+      form.elements['locked'].checked = false;
+      addHistEvent(editingId||row?.id,'unlock','Desbloqueo manual');
+      await logEvent('unlock','Desbloquear lote', editingId||row?.id);
+    };
+    $('#btnAdminApprove').onclick = async ()=>{
+      if(!canDoCritical()){ alert('Requiere rol admin.'); return; }
+      form.elements['approved'].checked = true;
+      addHistEvent(editingId||row?.id,'approve','Aprobación de lote');
+      await logEvent('approve','Aprobar lote', editingId||row?.id);
+    };
+
+    $('#btnStartAutoBid').onclick = ()=>{
+      const r = collectForm();
+      startAutoBid(r.id);
+      $('#mAuctionState').textContent = 'Auto-bid activo';
+    };
+    $('#btnStopAutoBid').onclick = ()=>{
+      const r = collectForm();
+      stopAutoBid(r.id);
+      $('#mAuctionState').textContent = '—';
+    };
+  }
+
+  function closeModal(){ $('#modalBk').style.display='none'; }
+
+  function collectForm(){
+    const form = $('#frm');
+    const get = n => form.elements[n]?.type==='checkbox' ? form.elements[n].checked : (form.elements[n]?.value||'');
+    const row = {
+      id: editingId || uid(),
+      plataforma: get('plataforma'),
+      lote: get('lote'),
+      vin: (get('vin')||'').toUpperCase(),
+      estado: get('estado'),
+      marca: get('marca'),
+      modelo: get('modelo'),
+      anio: asNum(get('anio')),
+      version: get('version'),
+      transmision: get('transmision'),
+      combustible: get('combustible'),
+      km: asNum(get('km')),
+      odometro: get('odometro'),
+      danioTipo: get('danioTipo'),
+      danioGrado: get('danioGrado'),
+      arranque: get('arranque'),
+      titulo: get('titulo'),
+      precio: asNum(get('precio')),
+      bin: asNum(get('bin')),
+      estimado: asNum(get('estimado')),
+      ubicacion: get('ubicacion'),
+      fechaSubasta: get('fechaSubasta') || '',
+      fotosNum: asNum(get('fotosNum')),
+      fotosFecha: get('fotosFecha') || '',
+      enlace: get('enlace'),
+      notas: get('notas'),
+      chkCoincide: get('chkCoincide'),
+      chkChasis: get('chkChasis'),
+      chkAirbag: get('chkAirbag'),
+      chkInund: get('chkInund'),
+      chkCorrosion: get('chkCorrosion'),
+      chkFugas: get('chkFugas'),
+      chkNeumaticos: get('chkNeumaticos'),
+      chkElectricos: get('chkElectricos'),
+      chkCompresion: get('chkCompresion'),
+      cTransporte: asNum(get('cTransporte')),
+      cImpuestos: asNum(get('cImpuestos')),
+      cGestoria: asNum(get('cGestoria')),
+      cReparacionMin: asNum(get('cReparacionMin')),
+      cReparacion: asNum(get('cReparacion')),
+      cReparacionMax: asNum(get('cReparacionMax')),
+      vReventa: asNum(get('vReventa')),
+      segmento: get('segmento') || 'econ',
+      escenario: get('escenario') || 'prob',
+      topeCompra: asNum(get('topeCompra')),
+      cTotal: asNum(get('cTotal')),
+      margen: asNum(get('margen')),
+      roiPct: asNum(get('roiPct')),
+      semaforo: get('semaforo'),
+      topeCompraCalc: asNum(get('topeCompraCalc')),
+      fotosUrls: get('fotosUrls'),
+      approved: get('approved'),
+      locked: get('locked'),
+      alertScheduled: get('alertScheduled'),
+      strategy: get('strategy') || '',
+      comparablesRaw: get('comparablesRaw') || '',
+      reserved: get('reserved'),
+      cashReserved: asNum(get('cashReserved')),
+      autoBid: get('autoBid'),
+      watchAuction: get('watchAuction'),
+      aiRec: get('aiRec') || '',
+      aiReason: get('aiReason') || '',
+      aiScore: asNum(get('aiScore')),
+      riskScore: asNum(get('riskScore')),
+      bidSuggestion: asNum(get('bidSuggestion')),
+      predictedPrice: asNum(get('predictedPrice')),
+      predictedUnc: asNum(get('predictedUnc')),
+      probUnderTope: asNum(get('probUnderTope'))
+    };
+        row.checkOk = [
+      row.chkCoincide,row.chkChasis,row.chkAirbag,row.chkInund,row.chkCorrosion,row.chkFugas,row.chkNeumaticos,row.chkElectricos
+    ].every(Boolean);
+    return row;
+  }
+
+  function updateChkSummary(){
+    const form = $('#frm');
+    const need = ['chkCoincide','chkChasis','chkAirbag','chkInund','chkCorrosion','chkFugas','chkNeumaticos','chkElectricos'];
+    const ok = need.every(n => form.elements[n].checked);
+    $('#mChkResumen').textContent = ok? 'OK':'Incompleto';
+    $('#mChkResumen').className = ok? 'success':'danger';
+    const vin = (form.elements['vin'].value || '').toUpperCase();
+    if(vin && vin.length===17){
+      $('#mVinWarn').textContent = 'OK';
+      $('#mVinWarn').className = 'success';
+    } else {
+      $('#mVinWarn').textContent = vin ? 'VIN incompleto' : 'Sin VIN';
+      $('#mVinWarn').className = 'danger';
+    }
+    const fecha = form.elements['fechaSubasta'].value;
+    const d = daysTo(fecha);
+    const alerts = [];
+    if(d!==null && d<=2) alerts.push('⏰ Subasta en '+d+' días');
+    $('#mAlerts').textContent = alerts.join(' • ');
+  }
+
+  function updateFinance(){
+    const form = $('#frm');
+    const r = collectForm();
+    const fin = calcROI(r);
+    form.elements['cTotal'].value = fin.cTotal||0;
+    form.elements['margen'].value = fin.margen??'';
+    form.elements['roiPct'].value = fin.roiPct??'';
+    const sem = rowSemaforo(r);
+    form.elements['semaforo'].value = sem.txt;
+    const topeCalc = calcTopeCompra(r);
+    form.elements['topeCompraCalc'].value = topeCalc;
+    if(cfg.autoBlockRed && sem.cls==='bad'){
+      form.elements['locked'].checked = true;
+    }
+    renderComparablesInfo();
+    const out = updateAI();
+    const tempRow = {...r, ...out};
+    // pushDecisionTrail not necessary here; maintained when saving
+    renderAiTrail(tempRow.aiTrail||[]);
+  }
+
+  function renderGalleryPreview(){
+    const wrap = $('#galPreview');
+    const val = $('#frm').elements['fotosUrls'].value||'';
+    const urls = val.split(',').map(s=>s.trim()).filter(Boolean).slice(0,12);
+    wrap.innerHTML = urls.map(u=>`<img src="${esc(u)}" alt="">`).join('');
+  }
+
+  function renderHist(hist){
+    const host = $('#histList');
+    host.innerHTML = (hist||[]).slice(-12).reverse().map(h=>{
+      const color = (h.type==='edit')?'#2563eb':(h.type==='create'||h.type==='approve')?'#16a34a':(h.type==='unlock')?'#06b6d4':'#ef4444';
+      return `<div class="tag"><span class="dot" style="background:${color}"></span>${esc(new Date(h.ts).toLocaleString())} — ${esc(h.msg||h.detail||h.type)}</div>`;
+    }).join('') || `<span class="muted">Sin movimientos</span>`;
+  }
+
+  function renderAiTrail(trail){
+    const host = $('#aiHistList');
+    host.innerHTML = (trail||[]).slice(-12).reverse().map(h=>{
+      return `<div class="tag"><span class="dot" style="background:#7c3aed"></span>${esc(new Date(h.ts).toLocaleString())} — ${esc(h.aiRec)} • Score ${h.aiScore} • Px ${fmt.money(h.predictedPrice)} • R ${h.riskScore} • ROI ${h.roiPct}%</div>`;
+    }).join('') || `<span class="muted">Sin decisiones registradas</span>`;
+  }
+
+  function renderComparablesInfo(){
+    const form = $('#frm');
+    const raw = form.elements['comparablesRaw']?.value||'';
+    const cmp = parseComparables(raw);
+    $('#cmpMedian').textContent = 'Mediana ' + (cmp.median? fmt.money(cmp.median) : '—');
+    const demoRow = collectForm();
+    const adj = adjustedReventa(demoRow);
+    $('#cmpUsed').textContent = 'Usado ' + (adj? fmt.money(adj) : '—');
+  }
+
+  function addHistEvent(id, type, msg){
+    const idx = data.findIndex(x=>x.id===id);
+    if(idx<0) return;
+    const now = Date.now();
+    data[idx].hist = data[idx].hist||[];
+    data[idx].hist.push({ ts: now, type, msg });
+    data[idx].updatedAt = now;
+    save();
+  }
+
+  async function upsertRow(row, isSave=false){
+    const now = Date.now();
+    const idx = data.findIndex(x=>x.id===row.id);
+    if(idx>=0){
+      row.createdAt = data[idx].createdAt || now;
+      row.updatedAt = now;
+      row.hist = data[idx].hist||[];
+      row.aiTrail = data[idx].aiTrail||row.aiTrail||[];
+      if(isSave){
+        row.hist.push({ ts: now, type:'edit', msg: 'Edición guardada' });
+        await logEvent('edit','Edición de lote', row.id);
+      }
+      // aprendizaje al cambiar estado
+      if(cfg.enableLearning && data[idx].estado!==row.estado){
+        learnFromChange(row);
+      }
+      data[idx] = row;
+    } else {
+      row.createdAt = now;
+      row.updatedAt = now;
+      row.hist = [{ ts: now, type:'create', msg:'Creación de lote' }];
+      row.aiTrail = row.aiTrail||[];
+      data.push(row);
+      await logEvent('create','Nuevo lote', row.id);
+      if(handsFree){
+        scheduleOrUnscheduleAlert(row);
+        const sem = rowSemaforo(row);
+        if(sem.cls==='ok') row.estado = 'Listo';
+        if(shouldAutoBid(row)) startAutoBid(row.id);
+      }
+    }
+    save();
+    if(cfg.enableCloudBackup) tryCloudBackup('upsert').catch(()=>{});
+  }
+
+  function learnFromChange(row){
+    try{
+      if(row.estado==='Comprado'){
+        cfg.learnStats.buys++;
+        const fin = calcROI(row);
+        if((fin.roiPct||0) >= minRoiBySeg(row.segmento||'econ')){
+          cfg.learnStats.good++;
+          cfg.aiMinRoiAdjust = Math.max(0, (cfg.aiMinRoiAdjust||0) - 1);
+        } else {
+          cfg.learnStats.bad++;
+          cfg.aiMinRoiAdjust = Math.min(12, (cfg.aiMinRoiAdjust||0) + 1);
+        }
+        addHistEvent(row.id,'learn',`Aprendizaje: aiMinRoiAdjust=${cfg.aiMinRoiAdjust}`);
+        logEvent('learn','Ajuste por compra', row.id);
+        showToast('Comprado: abre flujo de reparación/reventa');
+      }
+      if(row.estado==='Descartado'){
+        cfg.learnStats.discards++;
+        showToast('Lote descartado: archivado');
+      }
+      save();
+    }catch(e){}
+  }
+
+  function canDoCritical(){
+    if(!cfg.restrictCritical) return true;
+    return cfg.currentRole==='admin';
+  }
+
+  async function onSave(){
+    let row = collectForm();
+    if(cfg.restrictCritical && cfg.currentRole!=='admin'){
+      if(row.estado==='Comprado' || row.estado==='Descartado' || row.approved || (row.locked===false)){
+        alert('Acción crítica restringida a admin.');
+        return;
+      }
+    }
+    const aiOut = decideAI(row);
+    row = {...row, ...aiOut};
+    const sem = rowSemaforo(row);
+    if(row.locked && sem.cls==='bad' && !row.approved){
+      alert('Lote bloqueado (Rojo). Solo el admin aprobado puede confirmar cambios.');
+    }
+    await upsertRow(row, true);
+    scheduleOrUnscheduleAlert(row);
+    render();
+    closeModal();
+  }
+
+  async function onAction(e){
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const act = btn.dataset.act;
+    const row = data.find(x=>x.id===id);
+    if(!row) return;
+    if(act==='edit'){ openModal(row); }
+    if(act==='dup'){
+      const copy = {...row, id: uid(), createdAt: Date.now(), updatedAt: Date.now(), estado:'En revisión', approved:false, locked:false, _optPick:false, reserved:false, cashReserved:0};
+      copy.hist = [{ ts: Date.now(), type:'create', msg:'Duplicado de lote' }];
+      copy.aiTrail = [];
+      data.push(copy); await logEvent('duplicate','Duplicar lote', copy.id); save(); render();
+    }
+    if(act==='del'){
+      if(!canDoCritical()){ alert('Eliminar requiere admin.'); return; }
+      if(confirm('¿Eliminar este lote?')){ data = data.filter(x=>x.id!==id); await logEvent('delete','Eliminar lote', id); save(); render(); }
+    }
+    if(act==='gal'){
+      alert('Abrir galería en el editor para este lote.\nUsa el campo "Galería (URLs separadas por coma)".'); openModal(row);
+    }
+    if(act==='hist'){
+      alert('Historial mostrado en el editor, sección Historial y Decisiones IA.'); openModal(row);
+    }
+    if(act==='auto'){
+      startAutoBid(row.id);
+      showToast('Auto-bid marcado para este lote');
+      render();
+    }
+  }
+
+  function runSimulation(){
+    const f = $('#frm');
+    const base = collectForm();
+    const r = {...base};
+    const dRep = (asNum(f.elements['simRepairPct'].value)||0)/100;
+    const dMkt = (asNum(f.elements['simMarketPct'].value)||0)/100;
+    const dFee = (asNum(f.elements['simFeesPct'].value)||0)/100;
+    const simStrat = f.elements['simStrategy'].value||'';
+    r.cGestoria = Math.round((r.cGestoria||0) * (1 + dFee));
+    r.cImpuestos = Math.round((r.cImpuestos||0) * (1 + dFee));
+    r.cTransporte = Math.round((r.cTransporte||0) * (1 + dFee));
+    r.cReparacion = Math.round((r.cReparacion||0) * (1 + dRep));
+    r.cReparacionMin = Math.round((r.cReparacionMin||0) * (1 + dRep));
+    r.cReparacionMax = Math.round((r.cReparacionMax||0) * (1 + dRep));
+    r.vReventa = Math.round((r.vReventa||0) * (1 + dMkt));
+    if(simStrat) r.strategy = simStrat;
+    const fin = calcROI(r);
+    const ai = decideAI(r);
+    const out = $('#simOut');
+    out.innerHTML = [
+      `<span class="pill ok">ROI ${fin.roiPct??'—'}%</span>`,
+      `<span class="pill ok">Δ ${fmt.money(fin.margen||0)}</span>`,
+      `<span class="pill">Tope ${fmt.money(calcTopeCompra(r))}</span>`,
+      `<span class="pill info">Puja ${fmt.money(ai.bidSuggestion||0)}</span>`,
+      `<span class="pill ${ai.riskScore<=40?'ok':(ai.riskScore<=60?'warn':'bad')}">R ${ai.riskScore}</span>`,
+      `<span class="pill alt">${esc(ai.aiRec)}</span>`
+    ].join(' ');
+    return {r, fin, ai};
+  }
+
+  function applySimulation(){
+    const f = $('#frm');
+    const sim = runSimulation();
+    const base = $('#frm');
+    base.elements['cGestoria'].value = sim.r.cGestoria||0;
+    base.elements['cImpuestos'].value = sim.r.cImpuestos||0;
+    base.elements['cTransporte'].value = sim.r.cTransporte||0;
+    base.elements['cReparacion'].value = sim.r.cReparacion||0;
+    base.elements['cReparacionMin'].value = sim.r.cReparacionMin||0;
+    base.elements['cReparacionMax'].value = sim.r.cReparacionMax||0;
+    base.elements['vReventa'].value = sim.r.vReventa||0;
+    if(f.elements['simStrategy'].value) base.elements['strategy'].value = f.elements['simStrategy'].value;
+    updateFinance();
+    showToast('Simulación aplicada');
+  }
+
+  function openInViewer(url, title='Visor'){
+    const online = navigator.onLine;
+    const pane = $('#webPane');
+    const frame = $('#webFrame');
+    $('#webTitle').textContent = title;
+    if(online){
+      try { frame.src = url; } catch(e){}
+      pane.style.display = 'flex';
+      logEvent('open-view', `Abrir en visor: ${url}`, null);
+    } else {
+      pendingOpen = {url, title};
+      pane.style.display = 'none';
+      showToast('Sin conexión. Se abrirá abajo cuando vuelva la conexión.');
+      logEvent('queue-view', `Encolado (offline): ${url}`, null);
+    }
+  }
+
+  function bindLinkOpener(){
+    $$('#tbody a.link[data-open]').forEach(a=>{
+      a.addEventListener('click', (ev)=>{
+        ev.preventDefault();
+        const url = a.getAttribute('data-open')||'';
+        openInViewer(url, 'Lote');
+      }, {once:true});
+    });
+  }
+
+  function setNetBanner(){
+    const b = $('#netBanner');
+    if(navigator.onLine){
+      b.classList.remove('offline','hidden'); b.classList.add('online');
+      b.textContent = 'Conectado. Navegación a Copart/IAA habilitada.';
+      if(pendingOpen){ const {url,title} = pendingOpen; pendingOpen = null; openInViewer(url,title); }
+    } else {
+      b.classList.remove('online','hidden'); b.classList.add('offline');
+      b.textContent = 'Sin conexión. Operando offline. Abriremos páginas pendientes automáticamente cuando vuelva la conexión.';
+    }
+  }
+
+  function scheduleAutosave(){
+    const modalOpen = $('#modalBk').style.display==='flex';
+    if(!modalOpen) return;
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(async ()=>{
+      let row = collectForm();
+      const out = decideAI(row);
+      row = {...row, ...out};
+      await upsertRow(row, false);
+      $('#mActualizado').textContent = new Date().toLocaleString();
+    }, 600);
+  }
+
+  async function onImportCSV(e){
+    const file = e.target.files[0]; if(!file) return;
+    const text = await file.text();
+    const rows = fromCSV(text);
+    for(const r of rows){
+      r.id = r.id || uid();
+      const idx = data.findIndex(x=> (x.vin && x.vin===r.vin) || (x.lote && x.lote===r.lote));
+      const now = Date.now();
+      r.createdAt = idx>=0 ? (data[idx].createdAt||now) : (r.createdAt||now);
+      r.updatedAt = now;
+      r.checkOk = [r.chkCoincide,r.chkChasis,r.chkAirbag,r.chkInund,r.chkCorrosion,r.chkFugas,r.chkNeumaticos,r.chkElectricos].every(Boolean);
+      r.hist = (idx>=0 ? (data[idx].hist||[]) : (r.hist||[]));
+      r.aiTrail = (idx>=0 ? (data[idx].aiTrail||[]) : (r.aiTrail||[]));
+      r.hist.push({ ts: now, type: (idx>=0?'import-update':'import-create'), msg:'Importación CSV' });
+      if(idx>=0) data[idx] = {...data[idx], ...r};
+      else data.push(r);
+    }
+    await logEvent('import','Importación CSV', null);
+    save(); render(); e.target.value='';
+  }
+
+  async function onImportJSON(e){
+    const file = e.target.files[0]; if(!file) return;
+    try{
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const arr = Array.isArray(payload) ? payload : (payload.rows || []);
+      if(!Array.isArray(arr)) throw new Error('JSON esperado: arreglo de objetos');
+      for(const r of arr){
+        r.id = r.id || uid();
+        const idx = data.findIndex(x=> (x.vin && x.vin===r.vin) || (x.lote && x.lote===r.lote));
+        const now = Date.now();
+        r.createdAt = idx>=0 ? (data[idx].createdAt||now) : (r.createdAt||now);
+        r.updatedAt = now;
+        r.checkOk = [r.chkCoincide,r.chkChasis,r.chkAirbag,r.chkInund,r.chkCorrosion,r.chkFugas,r.chkNeumaticos,r.chkElectricos].every(Boolean);
+        r.hist = (idx>=0 ? (data[idx].hist||[]) : (r.hist||[]));
+        r.aiTrail = (idx>=0 ? (data[idx].aiTrail||[]) : (r.aiTrail||[]));
+        r.hist.push({ ts: now, type: (idx>=0?'import-update':'import-create'), msg:'Importación JSON' });
+        if(idx>=0) data[idx] = {...data[idx], ...r};
+        else data.push(r);
+      }
+      await logEvent('import','Importación JSON', null);
+      save(); render();
+    }catch(err){ alert('No se pudo importar JSON: ' + err.message); }
+    e.target.value='';
+  }
+
+  function download(filename, content, mime='application/octet-stream'){
+    const blob = new Blob([content], {type: mime+';charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+
+  function toCSV(rows){
+    const cols = [
+      'plataforma','lote','vin','estado','marca','modelo','anio','version','transmision','combustible','km','odometro',
+      'danioTipo','danioGrado','arranque','titulo','precio','bin','estimado','ubicacion','fechaSubasta','fotosNum','fotosFecha',
+      'enlace','notas','chkCoincide','chkChasis','chkAirbag','chkInund','chkCorrosion','chkFugas','chkNeumaticos','chkElectricos','chkCompresion',
+      'cTransporte','cImpuestos','cGestoria','cReparacionMin','cReparacion','cReparacionMax','vReventa','segmento','escenario','topeCompra','cTotal','margen','roiPct','semaforo','topeCompraCalc',
+      'fotosUrls','checkOk','approved','locked','alertScheduled','createdAt','updatedAt','comparablesRaw','reserved','cashReserved',
+      'autoBid','watchAuction','autoBidActive','_closePrice',
+      'aiRec','aiReason','aiScore','riskScore','bidSuggestion','predictedPrice','predictedUnc','probUnderTope'
+    ];
+    const esc = v => {
+      if(v===null || v===undefined) return '';
+      const s = String(v).replace(/"/g,'""');
+      return `"${s}"`;
+    };
+    const lines = [];
+    lines.push(cols.join(','));
+    for(const r of rows){
+      const row = cols.map(c => esc(r[c]));
+      lines.push(row.join(','));
+    }
+    return lines.join('\n');
+  }
+
+  function fromCSV(text){
+    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+    if(!lines.length) return [];
+    const headers = lines[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
+    const rows = [];
+    for(let i=1;i<lines.length;i++){
+      const line = lines[i];
+      const cells = [];
+      let cur='', inQ=false;
+      for(let j=0;j<line.length;j++){
+        const ch=line[j];
+        if(ch==='"'){
+          if(inQ && line[j+1]==='"'){ cur+='"'; j++; }
+          else inQ=!inQ;
+        } else if(ch===',' && !inQ){
+          cells.push(cur); cur='';
+        } else {
+          cur+=ch;
+        }
+      }
+      cells.push(cur);
+      const obj={};
+      headers.forEach((h,idx)=>{ obj[h]=cells[idx]!==undefined?cells[idx]:''; });
+      rows.push(obj);
+    }
+    return rows;
+  }
+
+  async function onExportCSV(){ const csv = toCSV(data); download('lotes.csv', csv, 'text/csv'); await logEvent('export','Exportar CSV', null); }
+  async function onExportJSON(){ const payload = { rows:data, logs, cfg }; const json = JSON.stringify(payload,null,2); download('lotes.json', json, 'application/json'); await logEvent('export','Exportar JSON', null); }
+  async function onExportPDF(){ window.print(); await logEvent('export','Exportar PDF', null); }
+  async function onExportLOG(){ const json = JSON.stringify(logs,null,2); download('logs.json', json, 'application/json'); await logEvent('export','Exportar logs', null); }
+
+  function updateAI(){
+    const r = collectForm();
+    const ai = decideAI(r);
+    $('#mAiRec').textContent = ai.aiRec;
+    $('#mAiReason').textContent = ai.aiReason;
+    $('#mAiRisk').textContent = `R ${ai.riskScore}`;
+    $('#mAiScore').textContent = `Score ${ai.aiScore}`;
+    $('#mAiPx').textContent = `Px ${fmt.money(ai.predictedPrice)}±${fmt.money(ai.predictedUnc)}`;
+    return ai;
+  }
+
+  function bindEvents(){
+    $('#btnNew').onclick = ()=> openModal(null);
+    $('#btnClose').onclick = closeModal;
+    $('#btnSave').onclick = onSave;
+    $('#btnExportCSV').onclick = onExportCSV;
+    $('#btnExportJSON').onclick = onExportJSON;
+    $('#btnExportPDF').onclick = onExportPDF;
+    $('#btnExportLOG').onclick = onExportLOG;
+    $('#btnClear').onclick = async ()=>{
+      if(confirm('¿Borrar todos los lotes?')){
+        data=[]; logs=[]; save(); render();
+        await logEvent('clear','Borrar todo', null);
+      }
+    };
+    $('#impCsv').addEventListener('change', onImportCSV);
+    $('#impJson').addEventListener('change', onImportJSON);
+    $('#tbody').addEventListener('click', onAction);
+    $('#frm').addEventListener('input', ()=>{ updateChkSummary(); updateFinance(); scheduleAutosave(); });
+    $('#btnRunSim').onclick = runSimulation;
+    $('#btnApplySim').onclick = applySimulation;
+    $('#cfgBtn').onclick = ()=>{ openCfg(); };
+    $('#btnCfgClose').onclick = ()=> $('#cfgBk').style.display='none';
+    $('#btnCfgSave').onclick = saveCfg;
+    $('#btnOptimize').onclick = ()=> openOpt();
+    $('#btnOptClose').onclick = ()=> $('#optBk').style.display='none';
+    $('#btnOptApply').onclick = applyOpt;
+    $('#btnPriorPanel').onclick = ()=> alert('Panel de prioridades se muestra en Dashboard.');
+    $('#btnAlertsPanel').onclick = ()=> alert('Panel de alertas críticas arriba.');
+    $('#btnAuctionMode').onclick = ()=> openAuction();
+    $('#btnAuctionClose').onclick = ()=> $('#auctionBk').style.display='none';
+    $('#btnHandsFree').onclick = ()=>{ handsFree=!handsFree; showToast('Manos libres: '+(handsFree?'ON':'OFF')); };
+    $('#btnReloadView').onclick = ()=>{ const f=$('#webFrame'); f.src=f.src; };
+    $('#btnCloseView').onclick = ()=> $('#webPane').style.display='none';
+    window.addEventListener('online', setNetBanner);
+    window.addEventListener('offline', setNetBanner);
+  }
+
+  function openCfg(){
+    const form = $('#frmCfg');
+    for(const el of form.elements){
+      if(!el.name) continue;
+      if(el.type==='checkbox') el.checked = !!cfg[el.name];
+      else if(el.type==='number') el.value = cfg[el.name]??'';
+      else el.value = cfg[el.name]??'';
+    }
+    $('#cfgBk').style.display='flex';
+  }
+
+  function saveCfg(){
+    const form = $('#frmCfg');
+    for(const el of form.elements){
+      if(!el.name) continue;
+      if(el.type==='checkbox') cfg[el.name] = el.checked;
+      else if(el.type==='number') cfg[el.name] = asNum(el.value);
+      else cfg[el.name] = el.value;
+    }
+    save();
+    $('#cfgBk').style.display='none';
+    render();
+  }
+
+  function openOpt(){
+    $('#optBk').style.display='flex';
+    const list = $('#optList');
+    const sorted = [...data].sort((a,b)=> (b.aiScore||0)-(a.aiScore||0));
+    list.innerHTML = sorted.slice(0,10).map(r=>`<div class="tag">${esc(r.marca||'')} ${esc(r.modelo||'')} ${esc(r.anio||'')} • Score ${r.aiScore}</div>`).join('');
+    $('#optSummary').innerHTML = `<span class="pill ok">Top 10 seleccionados</span>`;
+  }
+
+  function applyOpt(){
+    data.forEach((r,i)=> r._optPick = (i<10));
+    save(); render();
+    $('#optBk').style.display='none';
+  }
+
+  function openAuction(){
+    $('#auctionBk').style.display='flex';
+    const list = $('#auctionList');
+    const active = data.filter(r=>r.estado==='Puja activa');
+    list.innerHTML = active.map(r=>`<div class="auRow"><span>${esc(r.marca||'')} ${esc(r.modelo||'')} ${esc(r.anio||'')}</span><span class="pill info">Tope ${fmt.money(r.topeCompraCalc||0)}</span><span class="pill">Puja ${fmt.money(r.bidSuggestion||0)}</span></div>`).join('') || `<span class="muted">Sin lotes activos</span>`;
+    $('#auctionKpi').innerHTML = `<span class="pill info">Activos: ${active.length}</span>`;
+  }
+
+  function shouldAutoBid(r){
+    if(!r.autoBid) return false;
+    if(cfg.autoBidMode==='off') return false;
+    const h = hoursTo(r.fechaSubasta);
+    if(h===null) return false;
+    return h<=cfg.autoBidWindowMin;
+  }
+
+  function startAutoBid(id){
+    const r = data.find(x=>x.id===id);
+    if(!r) return;
+    r.autoBidActive = true;
+    logEvent('autoBid','Auto-bid iniciado', id);
+    save();
+  }
+
+  function stopAutoBid(id){
+    const r = data.find(x=>x.id===id);
+    if(!r) return;
+    r.autoBidActive = false;
+    logEvent('autoBid','Auto-bid detenido', id);
+    save();
+  }
+
+  function scheduleOrUnscheduleAlert(row){
+    // placeholder: implement scheduling if needed
+  }
+
+  async function tryCloudBackup(reason='auto'){
+    if(!cfg.enableCloudBackup) return;
+    if(!cfg.backupUrl) return;
+    const payload = { reason, ts: Date.now(), cfg: { iaStrategy: cfg.iaStrategy, cashAvailable: cfg.cashAvailable, lastLogHash: cfg.lastLogHash }, rows: data, logs: cfg.backupIncludeLogs ? logs.slice(-1000) : [] };
+    try{
+      await fetch(cfg.backupUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      await logEvent('backup','Backup nube OK', null);
+    }catch(e){
+      await logEvent('backup-fail','Backup nube fallido', null);
+    }
+  }
+
+  function renderPriorities(){ /* kept simple earlier */ }
+
+  function computeExtras(){ computeAccuracy(); }
+
+  function init(){
+    load();
+    bindEvents();
+    setNetBanner();
+    render();
+    if(cfg.enableCloudBackup){
+      setInterval(()=> tryCloudBackup('periodic'), 60000);
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
